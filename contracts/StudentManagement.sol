@@ -1,113 +1,133 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
-contract StudentManagementBoard {
-    address public owner;
-    enum Gender {
-        male,
-        female
-    }
+contract StudentManagement {
+        address owner;
 
-    struct Student {
-        string name;
-        uint8 age;
-        string class;
-        Gender gender;
-    }
+            constructor() {
+                        owner = msg.sender;
+            }
 
-    mapping(uint => Student) private students;
-    uint8 private studentId = 0;
-    mapping(address => bool) public authorizedUsers;
+                modifier onlyOwner() {
+                            require(msg.sender == owner, "You are not the admin");
+                                    _;
+                }
 
-    constructor() {
-        owner = msg.sender;
-    }
+                    enum Gender { Male, Female }
 
-    // Define the owner modifier
-    modifier onlyOwner() {
-        require(
-            msg.sender == owner,
-            "Only the contract owner can perform this action"
-        );
-        _;
-    }
+                        mapping(uint8 => Student) students;
 
-    //custom function to add authorized users
-    function addAdminRole(address user) external onlyOwner {
-        authorizedUsers[user] = true;
-    }
+                            // Events
+                                event CreatedStudent(
+                                            string indexed name,
+                                                    string indexed class,
+                                                            uint8 indexed age
+                                );
 
-    function removeAuthorizedUser(address user) external onlyOwner {
-        authorizedUsers[user] = false;
-    }
+                                    event UpdatedStudent(
+                                                uint8 indexed studentId,
+                                                        string name,
+                                                                string class,
+                                                                        uint8 age,
+                                                                                Gender gender
+                                    );
 
-    modifier onlyAuthorized() {
-        require(
-            msg.sender == owner || authorizedUsers[msg.sender],
-            "Not authorized"
-        );
-        _;
-    }
+                                        event DeletedStudent(
+                                                    uint8 indexed studentId
+                                        );
 
-    // Function to add a new student, restricted to the contract owner
-    function registerStudent(
-        string memory _name,
-        uint8 _age,
-        string memory _class,
-        Gender _gender
-    ) external onlyAuthorized {
-        Student memory student = Student({
-            name: _name,
-            age: _age,
-            class: _class,
-            gender: _gender
-        });
-        students[studentId] = student;
-        studentId++;
-    }
+                                            struct Student {
+                                                        string name;
+                                                                uint8 age;
+                                                                        string class;
+                                                                                Gender gender;
+                                            }
 
-    // Function to get a specific student by ID
-    function getStudent(
-        uint8 _studentId
-    ) public view returns (Student memory student_) {
-        require(_studentId < studentId, "Student ID does not exist");
-        student_ = students[_studentId];
-    }
+                                                uint8 studentId = 0;
 
-    function getStudentName(
-        uint8 _studentId
-    ) public view returns (string memory) {
-        require(_studentId < studentId, "Student ID does not exist");
-        return students[_studentId].name;
-    }
+                                                    // Register a new student
+                                                        function registerStudent(
+                                                                    string memory _name,
+                                                                            uint8 _age,
+                                                                                    string memory _class,
+                                                                                            Gender _gender
+                                                        ) external onlyOwner {
+                                                                    Student memory student = Student({
+                                                                                    name: _name,
+                                                                                                age: _age,
+                                                                                                            class: _class,
+                                                                                                                        gender: _gender
+                                                                    });
 
-    function getStudentAge(uint8 _studentId) public view returns (uint8) {
-        require(_studentId < studentId, "Student ID does not exist");
-        return students[_studentId].age;
-    }
+                                                                            studentId++;
+                                                                                    students[studentId] = student;
 
-    function getStudentClass(
-        uint8 _studentId
-    ) public view returns (string memory) {
-        require(_studentId < studentId, "Student ID does not exist");
-        return students[_studentId].class;
-    }
+                                                                                            emit CreatedStudent(_name, _class, _age);
+                                                        }
 
-    function getStudentGender(uint8 _studentId) public view returns (Gender) {
-        require(_studentId < studentId, "Student ID does not exist");
-        return students[_studentId].gender;
-    }
+                                                            // Get details of a specific student
+                                                                function getStudent(uint8 _studentId) public view returns (Student memory student_) {
+                                                                            require(_studentId > 0 && _studentId <= studentId, "Invalid student ID");
+                                                                                    student_ = students[_studentId];
+                                                                }
 
-    // Function to get all students
-    function getStudents() public view returns (Student[] memory students_) {
-        students_ = new Student[](studentId);
-        for (uint i = 0; i < studentId; i++) {
-            students_[i] = students[i];
-        }
-    }
+                                                                    // Get details of all students
+                                                                        function getStudents() public view returns (Student[] memory students_) {
+                                                                                    students_ = new Student[](studentId);
 
-    // Optional: Function to get the total number of students
-    function getTotalStudents() public view returns (uint8) {
-        return studentId;
-    }
+                                                                                            for (uint8 i = 1; i <= studentId; i++) {
+                                                                                                            students_[i - 1] = students[i];
+                                                                                            }
+
+                                                                                                    return students_;
+                                                                        }
+
+                                                                            // Update student details
+                                                                                function updateStudent(
+                                                                                            uint8 _studentId,
+                                                                                                    string memory _name,
+                                                                                                            uint8 _age,
+                                                                                                                    string memory _class,
+                                                                                                                            Gender _gender
+                                                                                ) external onlyOwner {
+                                                                                            require(_studentId > 0 && _studentId <= studentId, "Invalid student ID");
+
+                                                                                                    Student storage student = students[_studentId];
+                                                                                                            student.name = _name;
+                                                                                                                    student.age = _age;
+                                                                                                                            student.class = _class;
+                                                                                                                                    student.gender = _gender;
+
+                                                                                                                                            emit UpdatedStudent(_studentId, _name, _class, _age, _gender);
+                                                                                }
+
+                                                                                    // Delete a student
+                                                                                        function deleteStudent(uint8 _studentId) external onlyOwner {
+                                                                                                    require(_studentId > 0 && _studentId <= studentId, "Invalid student ID");
+
+                                                                                                            delete students[_studentId];
+                                                                                                                    emit DeletedStudent(_studentId);
+                                                                                        }
+
+                                                                                            // Get the total number of students
+                                                                                                function getStudentCount() public view returns (uint8) {
+                                                                                                            return studentId;
+                                                                                                }
+}
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                                )
+                                                                                            }
+                                                                        }
+                                                                }
+                                                                    })
+                                                        }
+                                                        )
+                                            }
+                                        )
+                                    )
+                                )
+                }
+            }
 }
